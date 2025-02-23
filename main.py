@@ -1,88 +1,103 @@
 import pygame
 import os
+import random
 
 pygame.init()
 
-height = 1000
-width = 1200 
-ventana = pygame.display.set_mode((width, height))
-timer = pygame.time.Clock()
-fps = 60
-pygame.display.set_caption("fantasmas")
+# Configuración de la pantalla
+WIDTH, HEIGHT = 1200, 1000
+ventana = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Fantasmas")
 clock = pygame.time.Clock()
+fps = 60
 
-#funcion para escalar imagen
-def escalar_img (image,scale):
-    w = image.get_width()
-    h =image.get_height()
-    new_image = pygame.transform.scale(image,(w*scale,h*scale))
-    return new_image 
+# Función para escalar imágenes
+def escalar_img(image, scale):
+    w, h = image.get_size()
+    return pygame.transform.scale(image, (int(w * scale), int(h * scale)))
 
-#funsion contar elementos
+# Función para contar elementos en un directorio
 def contar_elementos(directory):
-    return len (os.listdir(directory))
+    return len(os.listdir(directory)) if os.path.exists(directory) else 0
 
-#funsion nombrar elementos 
+# Función para obtener nombres de archivos en un directorio
 def nombre_carpeta(directory):
-    return os.listdir(directory)
+    return os.listdir(directory) if os.path.exists(directory) else []
 
-#enemigos 
+# Cargar animaciones de los enemigos
 directory_enemigos = "assents/images/personajes/enemigos"
 tipo_enemigo = nombre_carpeta(directory_enemigos)
-animacion_enemigo = []
+animaciones_enemigos = {}
+
 for eni in tipo_enemigo:
-    lista_temp = []
-    ruta_temp = f"assents/images/personajes/enemigos/{eni}"
-    num_animacion = contar_elementos(ruta_temp)
-    for i in range (num_animacion):
-        img_enemigo = pygame.image.load (f"{ruta_temp}/{eni}_{i+1}.png").convert_alpha()
-        img_enemigo = escalar_img(img_enemigo,1) 
-        lista_temp.append(img_enemigo)    
-    animacion_enemigo.append(lista_temp)
+    ruta_temp = os.path.join(directory_enemigos, eni)
+    num_animaciones = contar_elementos(ruta_temp)
+    animaciones = []
+    for i in range(num_animaciones):
+        img_path = os.path.join(ruta_temp, f"{eni}_{i+1}.png")
+        if os.path.exists(img_path):
+            img = pygame.image.load(img_path).convert_alpha()
+            animaciones.append(escalar_img(img, 1))
+    animaciones_enemigos[eni] = animaciones
 
-#clase de los fantasmas     
+# Clase de los fantasmas
 class Fantasmas:
-    def __init__(self, x, y,image):
-        self.image =image 
-        self.shape = pygame.Rect(0, 0, 50, 50)
-        self.shape.center = (x, y)
-
-def draw(self, ventana):
-    ventana.blit(self.image, self.rect.topleft)  # Usa topleft si rect es un pygame.Rect
-
-        #pygame.draw.rect(ventana, (0,255,255), self.shape)
-        
-                
-# Crear instancias de los fantasmas
-fant_azul = Fantasmas(50, 50,animacion_enemigo[0])
-fant_naranja = Fantasmas(250, 50,animacion_enemigo[1])
-fant_rojo = Fantasmas(450, 50,animacion_enemigo[2])
-fant_rosa = Fantasmas(650, 50,animacion_enemigo[3])
-
-#crear lista de enemigos 
-lista_enemigos = []
-lista_enemigos.append(fant_azul)
-lista_enemigos.append(fant_naranja)
-lista_enemigos.append(fant_rojo)
-lista_enemigos.append(fant_rosa)
-print(lista_enemigos)
-
-run = True  
-
-while run:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:  
-            run = False
-            
-    for ene in lista_enemigos:
-        ene.draw(ventana)
-        
-    for ene in lista_enemigos:
-        ene.update()
-        
-    pygame.display.update()
-    clock.tick(60)
+    def __init__(self, x, y, tipo):
+        self.x, self.y = x, y
+        self.tipo = tipo
+        self.animaciones = animaciones_enemigos.get(tipo, [])
+        self.frame = 0
+        self.velocidad = 2
+        self.direccion = "derecha"  # Puede ser 'izquierda', 'derecha', 'arriba', 'abajo'
+        self.shape = pygame.Rect(self.x, self.y, 50, 50)
     
-    pygame.display.update() 
+    def mover(self):
+        direcciones = ["izquierda", "derecha", "arriba", "abajo"]
+        if random.randint(0, 100) > 98:  # Pequeña probabilidad de cambiar de dirección
+            self.direccion = random.choice(direcciones)
+        
+        if self.direccion == "izquierda":
+            self.x -= self.velocidad
+        elif self.direccion == "derecha":
+            self.x += self.velocidad
+        elif self.direccion == "arriba":
+            self.y -= self.velocidad
+        elif self.direccion == "abajo":
+            self.y += self.velocidad
+        
+        self.shape.topleft = (self.x, self.y)
+    
+    def actualizar_animacion(self):
+        if self.animaciones:
+            self.frame = (self.frame + 1) % len(self.animaciones)
+    
+    def draw(self, ventana):
+        if self.animaciones:
+            ventana.blit(self.animaciones[self.frame], self.shape.topleft)
+
+# Crear instancias de los fantasmas
+lista_enemigos = [
+    Fantasmas(50, 50, "fantasma_azul"),
+    Fantasmas(250, 50, "fantasma_naranja"),
+    Fantasmas(450, 50, "fantasma_rojo"),
+    Fantasmas(650, 50, "fantasma_rosa")
+]
+
+# Bucle principal del juego
+run = True  
+while run:
+    ventana.fill((0, 0, 0))  # Limpiar pantalla
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+    
+    for ene in lista_enemigos:
+        ene.mover()
+        ene.actualizar_animacion()
+        ene.draw(ventana)
+    
+    pygame.display.update()
+    clock.tick(fps)
 
 pygame.quit()
