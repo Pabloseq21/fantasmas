@@ -31,13 +31,13 @@ animaciones_enemigos = {}
 
 for eni in tipo_enemigo:
     ruta_temp = os.path.join(directory_enemigos, eni)
-    num_animaciones = contar_elementos(ruta_temp)
-    animaciones = []
-    for i in range(num_animaciones):
-        img_path = os.path.join(ruta_temp, f"{eni}_{i+1}.png")
-        if os.path.exists(img_path):
-            img = pygame.image.load(img_path).convert_alpha()
-            animaciones.append(escalar_img(img, 1))
+    animaciones = {"izquierda": [], "derecha": [], "arriba": [], "abajo": []}
+    for direccion in animaciones.keys():
+        for i in range(2):  # Dos imágenes por dirección
+            img_path = os.path.join(ruta_temp, f"{eni}_{direccion}_{i+1}.png")
+            if os.path.exists(img_path):
+                img = pygame.image.load(img_path).convert_alpha()
+                animaciones[direccion].append(escalar_img(img, 1))
     animaciones_enemigos[eni] = animaciones
 
 # Clase de los fantasmas
@@ -45,11 +45,12 @@ class Fantasmas:
     def __init__(self, x, y, tipo):
         self.x, self.y = x, y
         self.tipo = tipo
-        self.animaciones = animaciones_enemigos.get(tipo, [])
+        self.animaciones = animaciones_enemigos.get(tipo, {"izquierda": [], "derecha": [], "arriba": [], "abajo": []})
         self.frame = 0
         self.velocidad = 2
         self.direccion = "derecha"  # Puede ser 'izquierda', 'derecha', 'arriba', 'abajo'
         self.shape = pygame.Rect(self.x, self.y, 50, 50)
+        self.last_update = pygame.time.get_ticks()
     
     def mover(self):
         direcciones = ["izquierda", "derecha", "arriba", "abajo"]
@@ -68,12 +69,15 @@ class Fantasmas:
         self.shape.topleft = (self.x, self.y)
     
     def actualizar_animacion(self):
-        if self.animaciones:
-            self.frame = (self.frame + 1) % len(self.animaciones)
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 1000:  # Cambia cada segundo
+            self.last_update = now
+            if self.animaciones[self.direccion]:
+                self.frame = (self.frame + 1) % len(self.animaciones[self.direccion])
     
     def draw(self, ventana):
-        if self.animaciones:
-            ventana.blit(self.animaciones[self.frame], self.shape.topleft)
+        if self.animaciones[self.direccion]:
+            ventana.blit(self.animaciones[self.direccion][self.frame], self.shape.topleft)
 
 # Crear instancias de los fantasmas
 lista_enemigos = [
