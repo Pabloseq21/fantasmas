@@ -18,16 +18,18 @@ def escalar_img(image, scale):
 
 # Función para contar elementos en un directorio
 def contar_elementos(directory):
-    return len(os.listdir(directory)) if os.path.exists(directory) else 0
+    return len(os.listdir(directory))if os.path.exists(directory)else 0
 
 # Función para obtener nombres de archivos en un directorio
 def nombre_carpeta(directory):
     return os.listdir(directory) if os.path.exists(directory) else []
 
 # Cargar animaciones de los enemigos
-directory_enemigos = "assents/images/personajes/enemigos"
+directory_enemigos = "assents/images/fantasmas"
 tipo_enemigo = nombre_carpeta(directory_enemigos)
 animaciones_enemigos = {}
+print(nombre_carpeta(directory_enemigos))
+print(contar_elementos(directory_enemigos))
 
 for eni in tipo_enemigo:
     ruta_temp = os.path.join(directory_enemigos, eni)
@@ -70,7 +72,7 @@ class Fantasmas:
     
     def actualizar_animacion(self):
         now = pygame.time.get_ticks()
-        if now - self.last_update > 1000:  # Cambia cada segundo
+        if now - self.last_update > 800:  # Cambia cada segundo
             self.last_update = now
             if self.animaciones[self.direccion]:
                 self.frame = (self.frame + 1) % len(self.animaciones[self.direccion])
