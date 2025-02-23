@@ -39,7 +39,7 @@ for eni in tipo_enemigo:
             img_path = os.path.join(ruta_temp, f"{eni}_{direccion}_{i+1}.png")
             if os.path.exists(img_path):
                 img = pygame.image.load(img_path).convert_alpha()
-                animaciones[direccion].append(escalar_img(img, 1))
+                animaciones[direccion].append(escalar_img(img, 0.25)) #al modificar el numero se modifica el tamano
     animaciones_enemigos[eni] = animaciones
 
 # Clase de los fantasmas
@@ -54,11 +54,21 @@ class Fantasmas:
         self.shape = pygame.Rect(self.x, self.y, 50, 50)
         self.last_update = pygame.time.get_ticks()
     
+
     def mover(self):
         direcciones = ["izquierda", "derecha", "arriba", "abajo"]
-        if random.randint(0, 100) > 98:  # Pequeña probabilidad de cambiar de dirección
-            self.direccion = random.choice(direcciones)
-        
+    
+    # Si el fantasma toca un borde, forzar cambio de dirección
+        if self.direccion == "izquierda" and self.x - self.velocidad < 0:
+            self.direccion = random.choice(["derecha", "arriba", "abajo"])
+        elif self.direccion == "derecha" and self.x + self.velocidad + 50 > WIDTH:
+            self.direccion = random.choice(["izquierda", "arriba", "abajo"])
+        elif self.direccion == "arriba" and self.y - self.velocidad < 0:
+            self.direccion = random.choice(["izquierda", "derecha", "abajo"])
+        elif self.direccion == "abajo" and self.y + self.velocidad + 50 > HEIGHT:
+            self.direccion = random.choice(["izquierda", "derecha", "arriba"])
+
+    # Movimiento normal dentro de los límites
         if self.direccion == "izquierda":
             self.x -= self.velocidad
         elif self.direccion == "derecha":
@@ -67,12 +77,12 @@ class Fantasmas:
             self.y -= self.velocidad
         elif self.direccion == "abajo":
             self.y += self.velocidad
-        
+
         self.shape.topleft = (self.x, self.y)
     
     def actualizar_animacion(self):
         now = pygame.time.get_ticks()
-        if now - self.last_update > 800:  # Cambia cada segundo
+        if now - self.last_update > 500:  # Cambia cada segundo
             self.last_update = now
             if self.animaciones[self.direccion]:
                 self.frame = (self.frame + 1) % len(self.animaciones[self.direccion])
