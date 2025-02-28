@@ -1,36 +1,34 @@
 import pygame
 import os
 import random
+import math
 
 pygame.init()
 
 # Configuración de la cuadrícula y la ventana
 MARGEN = 50
-FILAS, COLUMNAS = 20, 20  # Tamaño reducido de la cuadrícula
-TAM_CELDA = 35  # Ajuste del tamaño de cada celda para mejor visualización
-ANCHO, ALTO = COLUMNAS * TAM_CELDA + 2 * MARGEN, FILAS * TAM_CELDA + 2 * MARGEN  # Tamaño de la ventana con margen
+FILAS, COLUMNAS = 20, 20
+TAM_CELDA = 35
+ANCHO, ALTO = COLUMNAS * TAM_CELDA + 2 * MARGEN, FILAS * TAM_CELDA + 2 * MARGEN
 
 ventana = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Fantasmas")
 clock = pygame.time.Clock()
-fps = 10  # Velocidad de actualización
+fps = 30
 
-# Velocidades de movimiento
-velocidad_pacman = 0.8
-velocidad_fantasmas = 0.75
+# Velocidades
+pasos_pacman = 5  # Pac-Man se mueve cada 4 fotogramas
+pasos_fantasmas = 18  # Los fantasmas se mueven cada 5 fotogramas
 
-# Contadores de movimiento
+# Contadores
 contador_pacman = 0
 contador_fantasmas = 0
 
 # Colores
-CYAN = (0, 255, 255)
-NEGRO = (0, 0, 0)
-ROJO = (255, 0, 0)
-AMARILLO = (255, 255, 0)
+CYAN, NEGRO, ROJO, AMARILLO = (0, 255, 255), (0, 0, 0), (255, 0, 0), (255, 255, 0)
 
 # Cargar imágenes de fantasmas
-DIRECTORIO_FANTASMAS = "assents/images/fantasmas"
+DIRECTORIO_FANTASMAS = "assets/images/fantasmas"
 animaciones_fantasmas = {}
 
 def cargar_imagenes():
@@ -39,139 +37,166 @@ def cargar_imagenes():
         if os.path.isdir(ruta):
             animaciones_fantasmas[nombre] = {}
             for direccion in ["izquierda", "derecha", "arriba", "abajo"]:
-                animaciones_fantasmas[nombre][direccion] = []
-                for i in range(2):
-                    img_path = os.path.join(ruta, f"{nombre}_{direccion}_{i+1}.png")
-                    if os.path.exists(img_path):
-                        img = pygame.image.load(img_path).convert_alpha()
-                        img = pygame.transform.scale(img, (TAM_CELDA, TAM_CELDA))
-                        animaciones_fantasmas[nombre][direccion].append(img)
-                        print(f"Imagen cargada: {img_path}")
-                    else:
-                        print(f"Imagen no encontrada: {img_path}")
+                animaciones_fantasmas[nombre][direccion] = [
+                    pygame.transform.scale(
+                        pygame.image.load(os.path.join(ruta, f"{nombre}_{direccion}_{i+1}.png")).convert_alpha(),
+                        (TAM_CELDA, TAM_CELDA)
+                    ) for i in range(2) if os.path.exists(os.path.join(ruta, f"{nombre}_{direccion}_{i+1}.png"))
+                ]
 
 cargar_imagenes()
 
-# Dibujar la cuadrícula
+# Pac-Man
+DIRECTORIO_PACMAN = "assets/images/pacman"
+animaciones_pacman = {}
+
+def cargar_imagenes_pacman():
+    for direccion in ["izquierda", "derecha", "arriba", "abajo"]:
+        animaciones_pacman[direccion] = [
+            pygame.transform.scale(
+                pygame.image.load(os.path.join(DIRECTORIO_PACMAN, f"pacman_{direccion}_{i+1}.png")).convert_alpha(),
+                (TAM_CELDA, TAM_CELDA)
+            ) for i in range(3) if os.path.exists(os.path.join(DIRECTORIO_PACMAN, f"pacman_{direccion}_{i+1}.png"))
+        ]
+
+cargar_imagenes_pacman()
+
 def dibujar_celdas():
     for fila in range(FILAS):
         for col in range(COLUMNAS):
-            x, y = col * TAM_CELDA + MARGEN, fila * TAM_CELDA + MARGEN
-            pygame.draw.rect(ventana, CYAN, (x, y, TAM_CELDA, TAM_CELDA), 1)
+            pygame.draw.rect(ventana, CYAN, (col * TAM_CELDA + MARGEN, fila * TAM_CELDA + MARGEN, TAM_CELDA, TAM_CELDA), 1)
 
-# Clase de Pac-Man
 class Pacman:
     def __init__(self, fila, columna):
-        self.fila = fila
-        self.columna = columna
+        self.fila, self.columna, self.direccion = fila, columna, "izquierda"
+        self.frame, self.last_update = 0, pygame.time.get_ticks()
 
     def mover(self, keys, ocupadas):
         global contador_pacman
-        contador_pacman += velocidad_pacman
-        if contador_pacman < 1:
+        contador_pacman += 1
+        if contador_pacman < pasos_pacman:
             return
         contador_pacman = 0
-
         nueva_fila, nueva_col = self.fila, self.columna
-        
         if keys[pygame.K_w]:
-            nueva_fila -= 1
+            self.direccion, nueva_fila = "arriba", self.fila - 1
         elif keys[pygame.K_s]:
-            nueva_fila += 1
+            self.direccion, nueva_fila = "abajo", self.fila + 1
         elif keys[pygame.K_a]:
-            nueva_col -= 1
+            self.direccion, nueva_col = "izquierda", self.columna - 1
         elif keys[pygame.K_d]:
-            nueva_col += 1
-        
+            self.direccion, nueva_col = "derecha", self.columna + 1
         if (nueva_fila, nueva_col) not in ocupadas and 0 <= nueva_fila < FILAS and 0 <= nueva_col < COLUMNAS:
             self.fila, self.columna = nueva_fila, nueva_col
-    
+
     def draw(self):
-        x = self.columna * TAM_CELDA + MARGEN + TAM_CELDA // 2
-        y = self.fila * TAM_CELDA + MARGEN + TAM_CELDA // 2
-        pygame.draw.circle(ventana, AMARILLO, (x, y), TAM_CELDA // 2)
+        x, y = self.columna * TAM_CELDA + MARGEN, self.fila * TAM_CELDA + MARGEN
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 100:
+            self.last_update, self.frame = now, (self.frame + 1) % len(animaciones_pacman[self.direccion])
+        ventana.blit(animaciones_pacman[self.direccion][self.frame], (x, y))
+        if animaciones_pacman[self.direccion]:  # Asegura que existan animaciones
+            ventana.blit(animaciones_pacman[self.direccion][self.frame], (x, y))
 
-# Clase de los fantasmas
+
 class Fantasmas:
-    def __init__(self, fila, columna, tipo):
-        self.fila = fila
-        self.columna = columna
-        self.tipo = tipo
+    def __init__(self, fila, columna, tipo, persigue, embosca,rodear):
+        self.fila, self.columna, self.tipo = fila, columna, tipo
         self.direccion = random.choice(["izquierda", "derecha", "arriba", "abajo"])
-        self.animaciones = animaciones_fantasmas.get(tipo, {})
-        self.frame = 0
-        self.last_update = pygame.time.get_ticks()
+        self.frame, self.last_update = 0, pygame.time.get_ticks()
+        self.persigue = persigue
+        self.embosca = embosca
+        self.rodear = rodear
 
-    def mover(self, ocupadas):
+    def mover(self, ocupadas, pacman):
         global contador_fantasmas
-        contador_fantasmas += velocidad_fantasmas
-        if contador_fantasmas < 1:
+        contador_fantasmas += 1
+        if contador_fantasmas < pasos_fantasmas:
             return
         contador_fantasmas = 0
 
-        direcciones_validas = []
-        for direccion in ["arriba", "abajo", "izquierda", "derecha"]:
-            nueva_fila, nueva_col = self.fila, self.columna
-            if direccion == "arriba":
-                nueva_fila -= 1
-            elif direccion == "abajo":
-                nueva_fila += 1
-            elif direccion == "izquierda":
-                nueva_col -= 1
-            elif direccion == "derecha":
-                nueva_col += 1
+    # Definir objetivo según el comportamiento del fantasma
+        objetivo_fila, objetivo_col = pacman.fila, pacman.columna
 
-            if (nueva_fila, nueva_col) not in ocupadas and 0 <= nueva_fila < FILAS and 0 <= nueva_col < COLUMNAS:
-                direcciones_validas.append((nueva_fila, nueva_col, direccion))
+        if self.rodear:
+            if pacman.direccion == "arriba":
+                objetivo_fila += 2
+            elif pacman.direccion == "abajo":
+                objetivo_fila -= 2
+            elif pacman.direccion == "izquierda":
+                objetivo_col += 2
+            elif pacman.direccion == "derecha":
+                objetivo_col -= 2
 
-        if direcciones_validas:
-            self.fila, self.columna, self.direccion = random.choice(direcciones_validas)
+        if self.embosca:
+            if pacman.direccion == "arriba":
+                objetivo_fila -= 2
+            elif pacman.direccion == "abajo":
+                objetivo_fila += 2
+            elif pacman.direccion == "izquierda":
+                objetivo_col -= 2
+            elif pacman.direccion == "derecha":
+                objetivo_col += 2
+
+    # Definir las opciones de movimiento
+        opciones = [
+            (self.fila - 1, self.columna, "arriba"),
+            (self.fila + 1, self.columna, "abajo"),
+            (self.fila, self.columna - 1, "izquierda"),
+            (self.fila, self.columna + 1, "derecha")
+            ]
+
+    # Filtrar opciones válidas
+        opciones_validas = [
+            (fila, col, dir)
+            for fila, col, dir in opciones
+            if 0 <= fila < FILAS and 0 <= col < COLUMNAS and (fila, col) not in ocupadas
+        ]
+
+        if not opciones_validas:
+            opciones_validas = [(fila, col, dir) for fila, col, dir in opciones if 0 <= fila < FILAS and 0 <= col < COLUMNAS]
+    # Movimiento según comportamiento
+        if opciones_validas:
+            if self.persigue or self.embosca or self.rodear:
+                self.fila, self.columna, self.direccion = min(
+                    opciones_validas,
+                    key=lambda pos: math.sqrt((pos[0] - objetivo_fila) ** 2 + (pos[1] - objetivo_col) ** 2)
+                )
+        else:
+            self.fila, self.columna, self.direccion = random.choice(opciones_validas)
+
 
     def draw(self):
-        x = self.columna * TAM_CELDA + MARGEN
-        y = self.fila * TAM_CELDA + MARGEN
-        if self.animaciones:
-            now = pygame.time.get_ticks()
-            if now - self.last_update > 200:
-                self.last_update = now
-                self.frame = (self.frame + 1) % len(self.animaciones[self.direccion])
-            ventana.blit(self.animaciones[self.direccion][self.frame], (x, y))
-        else:
-            pygame.draw.rect(ventana, ROJO, (x, y, TAM_CELDA, TAM_CELDA))
+        x, y = self.columna * TAM_CELDA + MARGEN, self.fila * TAM_CELDA + MARGEN
+        now = pygame.time.get_ticks()
+        if now - self.last_update > 200:
+            self.last_update, self.frame = now, (self.frame + 1) % len(animaciones_fantasmas[self.tipo][self.direccion])
+        ventana.blit(animaciones_fantasmas[self.tipo][self.direccion][self.frame], (x, y))
+        if animaciones_fantasmas[self.tipo][self.direccion]:  
+            ventana.blit(animaciones_fantasmas[self.tipo][self.direccion][self.frame], (x, y))
 
-# Instancias
+
 pacman = Pacman(5, 5)
-fantasmas = [
-    Fantasmas(10, 10, "fantasma_azul"),
-    Fantasmas(10, 11, "fantasma_rojo"),
-    Fantasmas(10, 12, "fantasma_naranja"),
-    Fantasmas(10, 13, "fantasma_rosa")
-]
+fantasmas = [Fantasmas(10, 10, "fantasma_azul",False,False,False), Fantasmas(10, 11, "fantasma_rojo",True,False,False),
+             Fantasmas(10, 12, "fantasma_naranja",False,False,True), Fantasmas(10, 13, "fantasma_rosa",False,True,False)]
 
-# Bucle principal
 def main():
-    global run
     run = True
     while run:
         ventana.fill(NEGRO)
         dibujar_celdas()
-        
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 run = False
-
         keys = pygame.key.get_pressed()
         ocupadas = {(f.fila, f.columna) for f in fantasmas}
         pacman.mover(keys, ocupadas)
         pacman.draw()
-        
         for fantasma in fantasmas:
-            fantasma.mover(ocupadas)
+            fantasma.mover(ocupadas,pacman)
             fantasma.draw()
-
         pygame.display.update()
         clock.tick(fps)
-
     pygame.quit()
 
 if __name__ == "__main__":
