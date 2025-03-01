@@ -1,4 +1,3 @@
-from tkinter import Y
 import pygame
 import os
 import random
@@ -7,10 +6,10 @@ import math
 pygame.init()
 
 # Configuración de la cuadrícula y la ventana
-MARGEN = 50
-FILAS, COLUMNAS = 20, 20
-TAM_CELDA = (1820 - 2 * MARGEN) // COLUMNAS
-ANCHO, ALTO = 1820, 960
+MARGEN = 70
+FILAS, COLUMNAS = 21, 19
+TAM_CELDA = 35
+ANCHO, ALTO = COLUMNAS * TAM_CELDA + 2 * MARGEN, FILAS * TAM_CELDA + 2 * MARGEN
 
 ventana = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Fantasmas")
@@ -28,19 +27,39 @@ contador_fantasmas = 0
 # Colores
 CYAN, NEGRO, ROJO, AMARILLO = (0, 255, 255), (0, 0, 0), (255, 0, 0), (255, 255, 0)
 
-mapa = [[1 if x == 0 or x == COLUMNAS-1 or y == 0 or y == FILAS-1 else 0 for x in range(COLUMNAS)] for y in range (FILAS)]
+mapa =  [
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1],
+    [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+    [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+    [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1],
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    [1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
 
+excepciones_circulos = [(10,8),(10,9),(10,10),(8,18),(8,16),(8,17),(12,18),(12,16),(12,17),(12,1),(12,2),(12,0),(8,1),(8,2),(8,0)] 
 def dibujar_mapa():
     for fila in range(len(mapa)):
         for col in range(len(mapa[0])):
             color = (0, 0, 255) if mapa[fila][col] == 1 else (0, 0, 0)
             pygame.draw.rect(ventana, color, (col * TAM_CELDA + MARGEN, fila * TAM_CELDA + MARGEN, TAM_CELDA, TAM_CELDA))
+            if mapa[fila][col] == 0 and (fila, col) not in excepciones_circulos:
+                pygame.draw.circle(ventana, (255, 255, 0), (col * TAM_CELDA + MARGEN + TAM_CELDA // 2, fila * TAM_CELDA + MARGEN + TAM_CELDA // 2), TAM_CELDA // 4)
 
-def dibujar_celdas():
-    for fila in range(FILAS):
-        for col in range(COLUMNAS):
-            pygame.draw.rect(ventana, CYAN, (col * TAM_CELDA + MARGEN, fila * TAM_CELDA + MARGEN, TAM_CELDA, TAM_CELDA), 1)
-            
 # Cargar imágenes de fantasmas
 DIRECTORIO_FANTASMAS = "assents/images/fantasmas"
 animaciones_fantasmas = {}
@@ -75,6 +94,13 @@ def cargar_imagenes_pacman():
 
 cargar_imagenes_pacman()
 
+def dibujar_celdas():
+    for fila in range(FILAS):
+        for col in range(COLUMNAS):
+            pygame.draw.rect(ventana, CYAN, (col * TAM_CELDA + MARGEN, fila * TAM_CELDA + MARGEN, TAM_CELDA, TAM_CELDA), 1)
+
+# ...existing code...
+
 class Pacman:
     def __init__(self, fila, columna):
         self.fila, self.columna, self.direccion = fila, columna, "izquierda"
@@ -95,7 +121,7 @@ class Pacman:
             self.direccion, nueva_col = "izquierda", self.columna - 1
         elif keys[pygame.K_d]:
             self.direccion, nueva_col = "derecha", self.columna + 1
-        if (nueva_fila, nueva_col) not in ocupadas and 0 <= nueva_fila < FILAS and 0 <= nueva_col < COLUMNAS:
+        if (nueva_fila, nueva_col) not in ocupadas and 0 <= nueva_fila < FILAS and 0 <= nueva_col < COLUMNAS and mapa[nueva_fila][nueva_col] != 1:
             self.fila, self.columna = nueva_fila, nueva_col
 
     def draw(self):
@@ -107,9 +133,8 @@ class Pacman:
         if animaciones_pacman[self.direccion]:  # Asegura que existan animaciones
             ventana.blit(animaciones_pacman[self.direccion][self.frame], (x, y))
 
-
 class Fantasmas:
-    def __init__(self, fila, columna, tipo, persigue, embosca,rodear):
+    def __init__(self, fila, columna, tipo, persigue, embosca, rodear):
         self.fila, self.columna, self.tipo = fila, columna, tipo
         self.direccion = random.choice(["izquierda", "derecha", "arriba", "abajo"])
         self.frame, self.last_update = 0, pygame.time.get_ticks()
@@ -123,9 +148,8 @@ class Fantasmas:
         if self.contador_movimiento < pasos_fantasmas:
             return
         self.contador_movimiento = 0
-        
 
-    # Definir objetivo según el comportamiento del fantasma
+        # Definir objetivo según el comportamiento del fantasma
         objetivo_fila, objetivo_col = pacman.fila, pacman.columna
 
         if self.rodear:
@@ -148,41 +172,45 @@ class Fantasmas:
             elif pacman.direccion == "derecha":
                 objetivo_col += 2
 
-    # Definir las opciones de movimiento
+        # Definir las opciones de movimiento
         opciones = [
             (self.fila - 1, self.columna, "arriba"),
             (self.fila + 1, self.columna, "abajo"),
             (self.fila, self.columna - 1, "izquierda"),
-            (self.fila, self.columna + 1, "derecha")]
-        
+            (self.fila, self.columna + 1, "derecha")
+        ]
+
         ocupadas_tem = ocupadas.copy()
-        ocupadas_tem.remove((self.fila,self.columna))
-    # Filtrar opciones válidas
+        ocupadas_tem.remove((self.fila, self.columna))
+
+        # Filtrar opciones válidas
         opciones_validas = [
             (fila, col, dir)
             for fila, col, dir in opciones
-            if 0 <= fila < FILAS and 0 <= col < COLUMNAS and (fila, col) not in ocupadas]
-        
-        
+            if 0 <= fila < FILAS and 0 <= col < COLUMNAS and (fila, col) not in ocupadas and mapa[fila][col] != 1
+        ]
+
         if self.persigue or self.rodear or self.embosca:
-            self.fila,self.columna,self.direccion = min(opciones_validas, key=lambda pos: math.sqrt((pos[0]-objetivo_fila)**2 + (pos[1]-objetivo_col)**2))
+            self.fila, self.columna, self.direccion = min(opciones_validas, key=lambda pos: math.sqrt((pos[0] - objetivo_fila) ** 2 + (pos[1] - objetivo_col) ** 2))
         else:
-            self.fila,self.columna,self.direccion = random.choice(opciones_validas)
-    
+            self.fila, self.columna, self.direccion = random.choice(opciones_validas)
+
     def draw(self):
         x, y = self.columna * TAM_CELDA + MARGEN, self.fila * TAM_CELDA + MARGEN
         now = pygame.time.get_ticks()
         if now - self.last_update > 200:
             self.last_update, self.frame = now, (self.frame + 1) % len(animaciones_fantasmas[self.tipo][self.direccion])
         ventana.blit(animaciones_fantasmas[self.tipo][self.direccion][self.frame], (x, y))
-        if animaciones_fantasmas[self.tipo][self.direccion]:  
+        if animaciones_fantasmas[self.tipo][self.direccion]:
             ventana.blit(animaciones_fantasmas[self.tipo][self.direccion][self.frame], (x, y))
             
-
-
-pacman = Pacman(5, 5)
-fantasmas = [Fantasmas(9, 9, "fantasma_azul",False,False,False), Fantasmas(10, 11, "fantasma_rojo",True,False,False),
-             Fantasmas(11, 12, "fantasma_naranja",False,False,True), Fantasmas(10, 13, "fantasma_rosa",False,True,False)]
+pacman = Pacman(1, 1)  # Nueva posición inicial de Pac-Man
+fantasmas = [
+    Fantasmas(10, 9, "fantasma_azul", False, False, False),
+    Fantasmas(8, 10, "fantasma_rojo", True, False, False),
+    Fantasmas(10, 12, "fantasma_naranja", False, False, True),
+    Fantasmas(10, 13, "fantasma_rosa", False, True, False)
+]
 
 def main():
     run = True
