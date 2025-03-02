@@ -37,8 +37,8 @@ mapa =  [
     [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
     [1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1],
     [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
-    [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
     [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
     [0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
     [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
@@ -51,7 +51,13 @@ mapa =  [
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
 
-excepciones_circulos = [(10,8),(10,9),(10,10),(8,18),(8,16),(8,17),(12,18),(12,16),(12,17),(12,1),(12,2),(12,0),(8,1),(8,2),(8,0)] 
+excepciones_circulos = [(8,0),(8,1),(8,2),(8,6),(8,7),(8,8),(8,9),(8,10),(8,11),(8,12),(8,13),(8,16),(8,18),(8,17),
+                        (9,6),(9,9),(9,12),
+                        (10,0),(10,1),(10,2),(10,3),(10,5),(10,6),(10,7),(10,8),(10,9),(10,10),(12,10),(10,11),(10,12),(10,13),(10,15),(10,16),(10,18),(10,17),
+                        (11,6),(11,12),
+                        (12,0),(12,1),(12,2),(12,6),(12,7),(12,8),(12,9),(12,10),(12,11),(12,12),(12,13),(12,16),(12,18),(12,17),
+                        (13,6),(13,12)
+                        ]
 def dibujar_mapa():
     for fila in range(len(mapa)):
         for col in range(len(mapa[0])):
@@ -134,7 +140,7 @@ class Pacman:
             ventana.blit(animaciones_pacman[self.direccion][self.frame], (x, y))
 
 class Fantasmas:
-    def __init__(self, fila, columna, tipo, persigue, embosca, rodear):
+    def __init__(self, fila, columna, tipo, persigue, embosca, rodear,tiempo_salida):
         self.fila, self.columna, self.tipo = fila, columna, tipo
         self.direccion = random.choice(["izquierda", "derecha", "arriba", "abajo"])
         self.frame, self.last_update = 0, pygame.time.get_ticks()
@@ -142,8 +148,15 @@ class Fantasmas:
         self.embosca = embosca
         self.rodear = rodear
         self.contador_movimiento = 0
+        self.tiempo_salida = tiempo_salida
+        self.inicio = pygame.time.get_ticks()
+        
+        
 
     def mover(self, ocupadas, pacman):
+        if pygame.time.get_ticks() - self.inicio < self.tiempo_salida:
+            return
+        
         self.contador_movimiento += 1
         if self.contador_movimiento < pasos_fantasmas:
             return
@@ -189,11 +202,11 @@ class Fantasmas:
             for fila, col, dir in opciones
             if 0 <= fila < FILAS and 0 <= col < COLUMNAS and (fila, col) not in ocupadas and mapa[fila][col] != 1
         ]
-
         if self.persigue or self.rodear or self.embosca:
             self.fila, self.columna, self.direccion = min(opciones_validas, key=lambda pos: math.sqrt((pos[0] - objetivo_fila) ** 2 + (pos[1] - objetivo_col) ** 2))
         else:
             self.fila, self.columna, self.direccion = random.choice(opciones_validas)
+        
 
     def draw(self):
         x, y = self.columna * TAM_CELDA + MARGEN, self.fila * TAM_CELDA + MARGEN
@@ -204,13 +217,12 @@ class Fantasmas:
         if animaciones_fantasmas[self.tipo][self.direccion]:
             ventana.blit(animaciones_fantasmas[self.tipo][self.direccion][self.frame], (x, y))
             
-pacman = Pacman(1, 1)  # Nueva posición inicial de Pac-Man
+pacman = Pacman(16, 9)  #poscicion inicial de pacman
 fantasmas = [
-    Fantasmas(10, 9, "fantasma_azul", False, False, False),
-    Fantasmas(8, 10, "fantasma_rojo", True, False, False),
-    Fantasmas(10, 12, "fantasma_naranja", False, False, True),
-    Fantasmas(10, 13, "fantasma_rosa", False, True, False)
-]
+    Fantasmas(10, 8, "fantasma_azul", False,False, False,15000),
+    Fantasmas(8, 9, "fantasma_rojo", True, False, False,0),
+    Fantasmas(10, 10, "fantasma_naranja", False, False, True,5000),
+    Fantasmas(10, 9, "fantasma_rosa", False, True, False,1000)]
 
 def main():
     run = True
