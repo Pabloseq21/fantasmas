@@ -30,7 +30,7 @@ ROJO = (255, 0, 0)
 AMARILLO = (255, 255, 0)
 
 # Cargar imágenes de fantasmas
-DIRECTORIO_FANTASMAS = "assets/images/fantasmas"
+DIRECTORIO_FANTASMAS = "assents/images/fantasmas"
 animaciones_fantasmas = {}
 
 def cargar_imagenes():
